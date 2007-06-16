@@ -1,6 +1,3 @@
-# TODO:
-# - create -libs (to make -devel installable without server)?
-# - are static modules (%{_libdir}/*/*.a) usable for anything?
 Summary:	A calendar and mail server
 Summary(pl.UTF-8):	Serwer kalendarza i poczty
 Name:		bongo
@@ -20,7 +17,6 @@ BuildRequires:	sqlite3-devel
 BuildRequires:	clucene-core-devel
 BuildRequires:	pkgconfig
 BuildRequires:	rpmbuild(macros) >= 1.268
-Requires(post,postun):	/sbin/ldconfig
 Requires(post,preun):	/sbin/chkconfig
 Requires(postun):	/usr/sbin/groupdel
 Requires(postun):	/usr/sbin/userdel
@@ -28,15 +24,17 @@ Requires(pre):	/bin/id
 Requires(pre):	/usr/bin/getgid
 Requires(pre):	/usr/sbin/groupadd
 Requires(pre):	/usr/sbin/useradd
+Requires:	%{name}-libs = %{version}-%{release}
 Requires:	rc-scripts
 Provides:	group(bongo)
 Provides:	user(bongo)
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-Bongo is a calendar and mail server. The project is focused on building
-a calendar and mail server that people love to use, instead of broadly
-trying to build a "groupware server" that managers want to deploy.
+Bongo is a calendar and mail server. The project is focused on
+building a calendar and mail server that people love to use, instead
+of broadly trying to build a "groupware server" that managers want to
+deploy.
 
 %description -l pl.UTF-8
 Bongo to serwer kalendarza i poczty. Projekt ten skupia się na
@@ -44,11 +42,22 @@ stworzeniu serwera kalendarza i poczty, który ludzie lubiliby używać,
 zamiast próbować stworzyć "serwer pracy grupowej", który menadżerowie
 chcieliby wdrożyć.
 
+%package libs
+Summary:	Shared bongo libraries
+Summary(pl.UTF-8):	Biblioteki współdzielone bongo
+Group:		Libraries
+
+%description libs
+Shared bongo libraries.
+
+%description libs -l pl.UTF-8
+Biblioteki współdzielone bongo.
+
 %package devel
 Summary:	Development files for bongo
 Summary(pl.UTF-8):	Pliki programistyczne serwera bongo
 Group:		Development/Libraries
-Requires:	%{name} = %{version}-%{release}
+Requires:	%{name}-libs = %{version}-%{release}
 
 %description devel
 This package contains the header files for developing add-ons for
@@ -85,21 +94,18 @@ rm -rf $RPM_BUILD_ROOT
 
 #install -D %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/bongo
 
-# remove all .la files
-rm -f $RPM_BUILD_ROOT%{_libdir}/connmgr/*.la \
-	$RPM_BUILD_ROOT%{_libdir}/bongomdb/*.la \
-	$RPM_BUILD_ROOT%{_libdir}/*.la \
-	$RPM_BUILD_ROOT%{_libdir}/modweb/*.la
+rm -f $RPM_BUILD_ROOT%{_libdir}/connmgr/*.{la,a} \
+	$RPM_BUILD_ROOT%{_libdir}/bongomdb/*.{la,a} \
+	$RPM_BUILD_ROOT%{_libdir}/modweb/*.{la,a}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %pre
 %groupadd -g 171 bongo
-%useradd -u 171 -c "Bongo" -g 171 -s /sbin/nologin -r bongo
+%useradd -u 171 -c "Bongo" -g 171 -s /bin/false -r bongo
 
 %post
-/sbin/ldconfig
 /sbin/chkconfig --add bongo
 %service bongo restart
 
@@ -111,10 +117,12 @@ fi
 
 %postun
 if [ "$1" = "0" ]; then
-	/sbin/ldconfig
-	%userremove lula
-	%groupremove lula
+	%userremove bongo
+	%groupremove bongo
 fi
+
+%post	libs -p /sbin/ldconfig
+%postun	libs -p /sbin/ldconfig
 
 %files
 %defattr(644,root,root,755)
@@ -160,62 +168,58 @@ fi
 %dir %{_libdir}/netmail
 %dir %{_libdir}/netmail/schemas
 %{_libdir}/netmail/schemas/webadmin.sch
-%dir %{_pkgconfigdir}
-%{_pkgconfigdir}/bongo.pc
 %dir %{_libdir}/webadmin
 %{_libdir}/webadmin/*.wat
 
-%attr(755,root,root) %{_libdir}/libbongocalcmd.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongoconnio.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongoconnmgr.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongoical.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongoical2.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongolog4c.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongologger.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongomanagement.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongomdb.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongomemmgr.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongomsgapi.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongonmap.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongostreamio.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongoutil.so.0.0.0
-%attr(755,root,root) %{_libdir}/libbongoxpl.so.0.0.0
-%attr(755,root,root) %{_libdir}/libical-bongo.so.0.0.0
-%attr(755,root,root) %{_libdir}/libicalss-bongo.so.0.0.0
-%attr(755,root,root) %{_libdir}/libicalvcal-bongo.so.0.0.0
-%attr(755,root,root) %{_libdir}/libwacert.so.0.0.0
-%attr(755,root,root) %{_libdir}/libwanmail.so.0.0.0
-%attr(755,root,root) %{_libdir}/libwastats.so.0.0.0
-%attr(755,root,root) %{_libdir}/libwastdobj.so.0.0.0
-
-%dir %{_libdir}/bongo
 %attr(755,root,root) %{_libdir}/bongo/bongomonohelper
-%{_libdir}/bongo/Bongo.Sharp.dll
-%{_libdir}/bongo/Bongo.Sharp.dll.mdb
 %{_libdir}/bongo/BongoIndexer.exe
 %{_libdir}/bongo/BongoIndexer.exe.config
 %{_libdir}/bongo/BongoIndexer.exe.mdb
 %{_libdir}/bongo/BongoWeb.exe
 %{_libdir}/bongo/BongoWeb.exe.config
 %{_libdir}/bongo/BongoWeb.exe.mdb
-%{_libdir}/bongo/Lucene.Net.dll
-%{_libdir}/bongo/Mono.WebServer.dll
 
 %{_libdir}/bongo/calcmd
 %{_libdir}/bongo/dav
 %{_libdir}/bongo/import
 %{_libdir}/bongo/queue
-%{_libdir}/bongo/log4net.dll
 %{_libdir}/bongo/search
 %{_datadir}/bongo/zoneinfo
 
+%files libs
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/libbongocalcmd.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongoconnio.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongoconnmgr.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongoical.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongoical2.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongolog4c.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongologger.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongomanagement.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongomdb.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongomemmgr.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongomsgapi.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongonmap.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongostreamio.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongoutil.so.*.*.*
+%attr(755,root,root) %{_libdir}/libbongoxpl.so.*.*.*
+%attr(755,root,root) %{_libdir}/libical-bongo.so.*.*.*
+%attr(755,root,root) %{_libdir}/libicalss-bongo.so.*.*.*
+%attr(755,root,root) %{_libdir}/libicalvcal-bongo.so.*.*.*
+%attr(755,root,root) %{_libdir}/libwacert.so.*.*.*
+%attr(755,root,root) %{_libdir}/libwanmail.so.*.*.*
+%attr(755,root,root) %{_libdir}/libwastats.so.*.*.*
+%attr(755,root,root) %{_libdir}/libwastdobj.so.*.*.*
+%dir %{_libdir}/bongo
+%{_libdir}/bongo/Bongo.Sharp.dll
+%{_libdir}/bongo/Bongo.Sharp.dll.mdb
+%{_libdir}/bongo/Lucene.Net.dll
+%{_libdir}/bongo/Mono.WebServer.dll
+# check it - log4net copy?
+%{_libdir}/bongo/log4net.dll
+
 %files devel
 %defattr(644,root,root,755)
-%{_includedir}/bongo
-%dir %{_libdir}/webadmin
-%{_libdir}/webadmin/9stats.wat
-%{_pkgconfigdir}/bongo-sharp.pc
-
 %attr(755,root,root) %{_libdir}/libbongocalcmd.so
 %attr(755,root,root) %{_libdir}/libbongoconnio.so
 %attr(755,root,root) %{_libdir}/libbongoconnmgr.so
@@ -238,13 +242,56 @@ fi
 %attr(755,root,root) %{_libdir}/libwanmail.so
 %attr(755,root,root) %{_libdir}/libwastats.so
 %attr(755,root,root) %{_libdir}/libwastdobj.so
+%{_libdir}/libbongocalcmd.la
+%{_libdir}/libbongoconnio.la
+%{_libdir}/libbongoconnmgr.la
+%{_libdir}/libbongoical.la
+%{_libdir}/libbongoical2.la
+%{_libdir}/libbongolog4c.la
+%{_libdir}/libbongologger.la
+%{_libdir}/libbongomanagement.la
+%{_libdir}/libbongomdb.la
+%{_libdir}/libbongomemmgr.la
+%{_libdir}/libbongomsgapi.la
+%{_libdir}/libbongonmap.la
+%{_libdir}/libbongostreamio.la
+%{_libdir}/libbongoutil.la
+%{_libdir}/libbongoxpl.la
+%{_libdir}/libical-bongo.la
+%{_libdir}/libicalss-bongo.la
+%{_libdir}/libicalvcal-bongo.la
+%{_libdir}/libwacert.la
+%{_libdir}/libwanmail.la
+%{_libdir}/libwastats.la
+%{_libdir}/libwastdobj.la
+%{_includedir}/bongo
+# XXX: dup, needed here for anything???
+%dir %{_libdir}/webadmin
+%{_libdir}/webadmin/9stats.wat
+%{_pkgconfigdir}/bongo.pc
+%{_pkgconfigdir}/bongo-sharp.pc
 
 %files static
 %defattr(644,root,root,755)
-%{_libdir}/lib*.a
-%dir %{_libdir}/connmgr
-%{_libdir}/connmgr/lib*.a
-%dir %{_libdir}/bongomdb
-%{_libdir}/bongomdb/lib*.a
-%dir %{_libdir}/modweb
-%{_libdir}/modweb/lib*.a
+%{_libdir}/libbongocalcmd.a
+%{_libdir}/libbongoconnio.a
+%{_libdir}/libbongoconnmgr.a
+%{_libdir}/libbongoical.a
+%{_libdir}/libbongoical2.a
+%{_libdir}/libbongolog4c.a
+%{_libdir}/libbongologger.a
+%{_libdir}/libbongomanagement.a
+%{_libdir}/libbongomdb.a
+%{_libdir}/libbongomemmgr.a
+%{_libdir}/libbongomsgapi.a
+%{_libdir}/libbongonmap.a
+%{_libdir}/libbongostreamio.a
+%{_libdir}/libbongoutil.a
+%{_libdir}/libbongoxpl.a
+%{_libdir}/libical-bongo.a
+%{_libdir}/libicalss-bongo.a
+%{_libdir}/libicalvcal-bongo.a
+%{_libdir}/libwacert.a
+%{_libdir}/libwanmail.a
+%{_libdir}/libwastats.a
+%{_libdir}/libwastdobj.a
